@@ -1,0 +1,1885 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+<title>AI 캐릭터 대화챗</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;700;900&display=swap');
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#0e0e0e;
+  --bg2:#171717;
+  --bg3:#242424;
+  --white:#fff;
+  --accent:#6C5CE7;
+  --accent2:#a29bfe;
+  --good:#ff7ab6;
+
+  --theme-main:#6C5CE7;
+  --theme-sub:#a29bfe;
+  --theme-soft:rgba(108,92,231,0.18);
+
+  --theme-overlay-top:rgba(0,0,0,0.22);
+  --theme-overlay-mid:rgba(0,0,0,0.18);
+  --theme-overlay-bottom:rgba(0,0,0,0.58);
+
+  --app-max:430px;
+  --side-pad:14px;
+}
+body{
+  font-family:'Noto Sans KR',sans-serif;
+  background:var(--bg);
+  color:var(--white);
+  min-height:100vh;
+  overflow-x:hidden;
+}
+button,input,textarea,select{font-family:'Noto Sans KR',sans-serif}
+.screen{
+  display:none;
+  min-height:100vh;
+  flex-direction:column;
+  width:min(100%, var(--app-max));
+  margin:0 auto;
+  position:relative;
+}
+.screen.active{display:flex;animation:fadeUp .28s ease}
+@keyframes fadeUp{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:translateY(0)}}
+
+.btn-main{
+  width:100%;
+  background:var(--accent);
+  border:none;
+  border-radius:12px;
+  color:#fff;
+  font-size:15px;
+  font-weight:700;
+  padding:16px;
+  cursor:pointer;
+  transition:opacity .18s;
+}
+.btn-main:hover{opacity:.88}
+.btn-outline{
+  width:100%;
+  background:transparent;
+  border:1.5px solid rgba(255,255,255,0.2);
+  border-radius:12px;
+  color:rgba(255,255,255,0.85);
+  font-size:14px;
+  font-weight:400;
+  padding:14px;
+  cursor:pointer;
+  transition:all .18s;
+  margin-top:10px
+}
+.btn-outline:hover{border-color:rgba(255,255,255,0.4);background:rgba(255,255,255,0.05)}
+.btn-back{
+  background:none;
+  border:none;
+  color:var(--white);
+  font-size:22px;
+  cursor:pointer;
+  padding:4px 6px;
+  line-height:1;
+  flex-shrink:0
+}
+.top-bar{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  padding:18px var(--side-pad) 0;
+  min-height:52px;
+  flex-shrink:0
+}
+.step-badge{font-size:13px;color:rgba(255,255,255,0.65)}
+.step-label{font-size:11px;letter-spacing:2.5px;color:rgba(255,255,255,0.55);font-weight:400;margin-bottom:8px}
+.big-title{font-size:28px;font-weight:900;line-height:1.35;margin-bottom:8px}
+.sub-txt{font-size:13px;color:rgba(255,255,255,0.6);line-height:1.6;margin-bottom:28px}
+.lang-row{display:flex;gap:10px;justify-content:center;padding:14px 0}
+.lang-btn{background:none;border:none;color:rgba(255,255,255,0.55);font-size:13px;cursor:pointer}
+.lang-sep{color:rgba(255,255,255,0.3);font-size:13px;line-height:1.8}
+
+/* LANDING */
+#s-land{background:var(--bg);overflow:hidden;position:relative}
+.land-bg{position:absolute;inset:0;pointer-events:none;overflow:hidden}
+.land-orb{position:absolute;border-radius:50%;filter:blur(80px);opacity:.35}
+.land-orb-1{width:320px;height:320px;top:-60px;right:-60px;background:radial-gradient(circle,#6C5CE7,transparent)}
+.land-orb-2{width:220px;height:220px;bottom:80px;left:-40px;background:radial-gradient(circle,#a29bfe,transparent)}
+.land-inner{
+  flex:1;
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  justify-content:center;
+  padding:32px var(--side-pad) 20px;
+  text-align:center;
+  position:relative;
+  z-index:1
+}
+.land-logo{font-size:14px;font-weight:700;letter-spacing:1px;margin-bottom:28px;color:rgba(255,255,255,0.5);text-transform:uppercase}
+.land-headline{font-size:24px;font-weight:900;line-height:1.45;margin-bottom:14px}
+.land-headline em{font-style:normal;color:var(--accent2)}
+.land-desc{font-size:14px;color:rgba(255,255,255,0.6);line-height:1.75;max-width:300px;margin:0 auto 36px}
+.land-pills{display:flex;flex-wrap:wrap;gap:8px;justify-content:center;margin-bottom:40px}
+.land-pill{background:rgba(108,92,231,0.15);border:1px solid rgba(108,92,231,0.3);border-radius:20px;padding:6px 14px;font-size:12px;color:var(--accent2)}
+.land-footer{padding:0 var(--side-pad) 28px;position:relative;z-index:1;width:100%}
+
+/* NAME */
+.name-body{flex:1;padding:0 var(--side-pad)}
+.input-wrap{position:relative}
+.txt-input{
+  width:100%;
+  background:rgba(255,255,255,0.06);
+  border:1.5px solid rgba(255,255,255,0.12);
+  border-radius:12px;
+  padding:14px 52px 14px 16px;
+  color:#fff;
+  font-size:15px;
+  outline:none;
+  transition:border-color .2s
+}
+.txt-input:focus{border-color:var(--accent2)}
+.txt-input::placeholder{color:rgba(255,255,255,0.3)}
+.char-count{position:absolute;right:14px;bottom:14px;font-size:12px;color:rgba(255,255,255,0.35)}
+.name-footer{padding:16px var(--side-pad) 28px;flex-shrink:0}
+
+/* THEME */
+.choice-list{display:flex;flex-direction:column;gap:10px}
+.choice-card{
+  background:rgba(255,255,255,0.05);
+  border:1.5px solid rgba(255,255,255,0.1);
+  border-radius:14px;
+  padding:18px 16px;
+  cursor:pointer;
+  transition:all .2s
+}
+.choice-card:hover{border-color:rgba(255,255,255,0.25)}
+.choice-card.sel{border-color:var(--accent2);background:rgba(108,92,231,0.1)}
+.choice-title{font-size:16px;font-weight:700;margin-bottom:4px;color:#fff}
+.choice-tags{font-size:13px;color:rgba(255,255,255,0.55)}
+
+/* CHAR SELECT */
+#s-chars{overflow:hidden}
+.chars-header{padding:0 0 10px;flex-shrink:0}
+.chars-title{font-size:20px;font-weight:900;margin-bottom:3px}
+.chars-sub{font-size:13px;color:rgba(255,255,255,0.55);margin-bottom:12px}
+.filter-tabs{display:flex;gap:7px;overflow-x:auto;padding-bottom:4px;scrollbar-width:none}
+.filter-tabs::-webkit-scrollbar{display:none}
+.ftab{
+  background:rgba(255,255,255,0.06);
+  border:1px solid rgba(255,255,255,0.1);
+  border-radius:20px;
+  padding:6px 14px;
+  font-size:12px;
+  color:rgba(255,255,255,0.7);
+  white-space:nowrap;
+  cursor:pointer;
+  transition:all .18s;
+  flex-shrink:0
+}
+.ftab.on{background:rgba(108,92,231,0.2);border-color:var(--accent2);color:var(--accent2)}
+.create-row{padding:0 var(--side-pad) 12px;flex-shrink:0}
+.btn-create-char{
+  width:100%;
+  background:rgba(108,92,231,0.12);
+  border:1.5px dashed rgba(108,92,231,0.45);
+  border-radius:12px;
+  padding:13px;
+  color:var(--accent2);
+  font-size:14px;
+  font-weight:500;
+  cursor:pointer;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  gap:8px;
+  transition:all .2s
+}
+.btn-create-char:hover{background:rgba(108,92,231,0.22);border-color:var(--accent2)}
+.section-lbl{font-size:13px;font-weight:700;margin-bottom:8px;display:flex;align-items:center;gap:5px;padding:0 var(--side-pad);color:#fff}
+.chars-scroll{flex:1;overflow-y:auto;padding:0 var(--side-pad) 120px;scrollbar-width:none}
+.chars-scroll::-webkit-scrollbar{display:none}
+
+.card-grid{
+  display:grid;
+  grid-template-columns:repeat(4,1fr);
+  gap:7px;
+  margin-bottom:22px;
+}
+.char-card{
+  border-radius:10px;
+  overflow:hidden;
+  cursor:pointer;
+  position:relative;
+  border:1.5px solid transparent;
+  transition:all .2s;
+  aspect-ratio:.62;
+  background:#1a1a1a;
+}
+.char-card:hover{border-color:rgba(255,255,255,0.22);transform:translateY(-2px)}
+.char-card.sel{border-color:var(--accent2);box-shadow:0 0 0 2px rgba(108,92,231,0.15)}
+.char-thumb{
+  position:absolute;
+  inset:0;
+  width:100%;
+  height:100%;
+  object-fit:cover;
+  display:block;
+  background:#1a1a1a
+}
+.char-gradient{
+  position:absolute;
+  inset:0;
+  background:linear-gradient(180deg,rgba(0,0,0,0.02) 12%,rgba(0,0,0,0.14) 40%,rgba(0,0,0,0.95) 100%)
+}
+.cbadge{
+  position:absolute;
+  top:4px;
+  left:4px;
+  font-size:7px;
+  font-weight:700;
+  padding:2px 5px;
+  border-radius:8px;
+  backdrop-filter:blur(8px);
+  z-index:3
+}
+.badge-hot{background:rgba(214,48,49,0.86);color:#fff}
+.badge-new{background:rgba(108,92,231,0.86);color:#fff}
+.badge-best{background:rgba(0,184,148,0.86);color:#fff}
+.card-actions{
+  position:absolute;
+  top:4px;
+  right:4px;
+  display:flex;
+  gap:3px;
+  z-index:3
+}
+.card-mini-btn{
+  width:20px;
+  height:20px;
+  border-radius:999px;
+  border:1px solid rgba(255,255,255,0.14);
+  background:rgba(0,0,0,0.28);
+  color:#fff;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  font-size:10px;
+  cursor:pointer;
+  backdrop-filter:blur(10px);
+  transition:.16s
+}
+.card-mini-btn:hover{background:rgba(255,255,255,0.16)}
+.card-mini-btn.on{background:rgba(108,92,231,0.92);border-color:rgba(162,155,254,0.8)}
+.card-mini-btn.like.on{background:rgba(255,122,182,0.95);border-color:rgba(255,186,216,0.65)}
+.char-info{position:absolute;bottom:0;left:0;right:0;padding:5px 5px 6px;z-index:3}
+.char-name{font-size:9px;font-weight:700;color:#fff;line-height:1.2}
+.char-type{font-size:7px;color:rgba(255,255,255,0.66);margin-top:2px;line-height:1.2}
+.char-stats{display:flex;gap:3px;margin-top:3px;font-size:7px;color:rgba(255,255,255,0.5);flex-wrap:wrap}
+
+.chars-footer{
+  position:fixed;
+  bottom:0;
+  left:50%;
+  transform:translateX(-50%);
+  width:min(100%, var(--app-max));
+  padding:10px var(--side-pad) 24px;
+  background:linear-gradient(transparent,#0e0e0e 45%)
+}
+.sel-row{display:flex;align-items:center;gap:10px;margin-bottom:9px}
+.sel-av{
+  width:28px;
+  height:28px;
+  border-radius:50%;
+  overflow:hidden;
+  border:1.5px solid var(--accent2);
+  flex-shrink:0;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  background:#1b1b1b
+}
+.sel-av img{width:100%;height:100%;object-fit:cover}
+.sel-nm{font-size:13px;color:var(--accent2);flex:1}
+.sel-clear{font-size:12px;color:rgba(255,255,255,0.45);background:none;border:none;cursor:pointer}
+
+/* CREATE */
+#s-create{overflow:hidden;background:var(--bg)}
+.create-top{padding:14px var(--side-pad) 0;display:flex;align-items:center;justify-content:center;position:relative;flex-shrink:0}
+.create-top-title{font-size:15px;font-weight:700;color:#fff}
+.create-top .btn-back{position:absolute;left:var(--side-pad)}
+.ctabs{display:flex;border-bottom:1px solid rgba(255,255,255,0.12);margin-top:14px;flex-shrink:0}
+.ctab{
+  flex:1;
+  text-align:center;
+  padding:11px 6px;
+  font-size:13px;
+  color:rgba(255,255,255,0.75);
+  cursor:pointer;
+  border-bottom:2px solid transparent;
+  transition:all .18s;
+  font-weight:500;
+  background:none;
+  border-top:none;
+  border-left:none;
+  border-right:none
+}
+.ctab:hover{color:#fff}
+.ctab.on{color:#fff;border-bottom-color:var(--accent2);font-weight:700}
+.ctab-panels{flex:1;overflow:hidden;display:flex;flex-direction:column}
+.ctab-panel{display:none;flex:1;overflow-y:auto;padding:16px var(--side-pad) 100px;scrollbar-width:none}
+.ctab-panel::-webkit-scrollbar{display:none}
+.ctab-panel.on{display:block}
+
+.ai-gen-section{margin-bottom:24px}
+.ai-gen-label{font-size:13px;font-weight:600;color:#fff;margin-bottom:10px;display:flex;align-items:center;gap:6px}
+.ai-gen-label .badge-ai{font-size:10px;background:linear-gradient(135deg,var(--accent),#a29bfe);color:#fff;padding:2px 8px;border-radius:8px;font-weight:500}
+.ai-gen-row{display:flex;gap:10px;align-items:flex-start}
+.prompt-box{
+  flex:1;
+  background:rgba(255,255,255,0.05);
+  border:1.5px solid rgba(255,255,255,0.12);
+  border-radius:12px;
+  padding:12px 14px;
+  color:#fff;
+  font-size:13px;
+  outline:none;
+  resize:none;
+  min-height:80px;
+  line-height:1.6;
+  transition:border-color .2s
+}
+.prompt-box:focus{border-color:var(--accent2)}
+.prompt-box::placeholder{color:rgba(255,255,255,0.3);font-size:12px;line-height:1.7}
+.gen-btn{
+  flex-shrink:0;
+  background:linear-gradient(135deg,var(--accent),#8b7cf6);
+  border:none;
+  border-radius:12px;
+  color:#fff;
+  font-size:13px;
+  font-weight:700;
+  padding:0 16px;
+  height:80px;
+  cursor:pointer;
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  justify-content:center;
+  gap:5px;
+  transition:all .2s;
+  min-width:70px
+}
+.gen-btn:hover{opacity:.88;transform:translateY(-1px)}
+.gen-result{
+  margin-top:14px;
+  position:relative;
+  border-radius:14px;
+  overflow:hidden;
+  display:none;
+  animation:popIn .45s cubic-bezier(.34,1.56,.64,1) forwards
+}
+@keyframes popIn{from{opacity:0;transform:scale(.88)}to{opacity:1;transform:scale(1)}}
+.gen-result img{width:100%;display:block;border-radius:14px;aspect-ratio:1/1;object-fit:cover;background:#1b1b1b}
+.gen-result-overlay{position:absolute;inset:0;background:linear-gradient(180deg,transparent 50%,rgba(0,0,0,0.75) 100%);border-radius:14px}
+.gen-result-btns{position:absolute;bottom:12px;left:12px;right:12px;display:flex;gap:8px}
+.gen-action-btn{
+  flex:1;
+  padding:9px;
+  border-radius:9px;
+  font-size:12px;
+  font-weight:600;
+  cursor:pointer;
+  border:none;
+  transition:all .18s
+}
+.gen-action-btn.use{background:var(--accent);color:#fff}
+.gen-action-btn.regen{background:rgba(255,255,255,0.15);color:#fff;border:1px solid rgba(255,255,255,0.2)}
+
+.selected-img-preview{
+  display:none;
+  align-items:center;
+  gap:10px;
+  background:rgba(108,92,231,0.08);
+  border:1px solid rgba(108,92,231,0.2);
+  border-radius:10px;
+  padding:10px 12px;
+  margin-top:10px
+}
+.selected-img-preview.on{display:flex}
+.preview-thumb{width:44px;height:44px;border-radius:8px;object-fit:cover;flex-shrink:0}
+.preview-info{flex:1}
+.preview-info-title{font-size:12px;font-weight:600;color:#fff}
+.preview-info-sub{font-size:11px;color:var(--accent2);margin-top:2px}
+.preview-remove{background:none;border:none;color:rgba(255,255,255,0.4);font-size:16px;cursor:pointer;flex-shrink:0}
+
+.form-field{margin-bottom:22px}
+.field-label{font-size:13px;font-weight:600;margin-bottom:8px;display:flex;align-items:center;gap:4px;color:#fff}
+.req{color:#E84393;font-size:13px}
+.field-input{
+  width:100%;
+  background:rgba(255,255,255,0.06);
+  border:1px solid rgba(255,255,255,0.12);
+  border-radius:10px;
+  padding:13px 16px;
+  color:#fff;
+  font-size:14px;
+  outline:none;
+  transition:border-color .2s
+}
+.field-input:focus{border-color:var(--accent2)}
+.field-input::placeholder{color:rgba(255,255,255,0.3)}
+textarea.field-input{resize:vertical;min-height:90px;line-height:1.6}
+.field-count{font-size:11px;color:rgba(255,255,255,0.35);margin-top:5px}
+.target-row{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px}
+.target-btn{
+  background:rgba(255,255,255,0.05);
+  border:1px solid rgba(255,255,255,0.12);
+  border-radius:10px;
+  padding:12px 8px;
+  font-size:13px;
+  color:rgba(255,255,255,0.75);
+  cursor:pointer;
+  transition:all .18s;
+  text-align:center
+}
+.target-btn.on{background:rgba(108,92,231,0.15);border-color:var(--accent2);color:var(--accent2)}
+.nsfw-row{
+  background:rgba(255,255,255,0.03);
+  border:1px solid rgba(255,255,255,0.09);
+  border-radius:10px;
+  padding:14px 16px;
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  margin-top:4px
+}
+.nsfw-info{flex:1;margin-right:12px}
+.nsfw-title{font-size:13px;font-weight:600;display:flex;align-items:center;gap:6px;color:#fff}
+.nsfw-badge{background:rgba(108,92,231,0.25);color:var(--accent2);font-size:10px;padding:2px 7px;border-radius:8px;font-weight:400}
+.nsfw-desc{font-size:12px;color:rgba(255,255,255,0.5);margin-top:3px}
+.toggle{width:40px;height:22px;border-radius:11px;background:rgba(255,255,255,0.18);position:relative;cursor:pointer;transition:background .2s;flex-shrink:0;border:none}
+.toggle.on{background:var(--accent)}
+.toggle::after{content:'';position:absolute;width:16px;height:16px;border-radius:50%;background:#fff;top:3px;left:3px;transition:left .2s}
+.toggle.on::after{left:21px}
+.gallery-info{background:rgba(108,92,231,0.08);border:1px solid rgba(108,92,231,0.2);border-radius:10px;padding:14px;margin-bottom:16px}
+.gallery-info-text{font-size:12px;color:rgba(255,255,255,0.65);line-height:1.65;margin-bottom:8px}
+.gallery-info-code{font-family:monospace;color:var(--accent2);font-size:12px;background:rgba(108,92,231,0.15);padding:2px 7px;border-radius:5px}
+.gallery-badges{display:flex;gap:10px;flex-wrap:wrap;margin-top:8px}
+.g-badge{font-size:11px;color:rgba(255,255,255,0.6)}
+.gallery-add-btn{
+  width:100%;
+  background:rgba(255,255,255,0.03);
+  border:1.5px dashed rgba(255,255,255,0.18);
+  border-radius:12px;
+  padding:18px;
+  color:rgba(255,255,255,0.55);
+  font-size:14px;
+  cursor:pointer;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  gap:8px;
+  transition:all .2s
+}
+.gallery-add-btn:hover{border-color:rgba(255,255,255,0.35);color:rgba(255,255,255,0.8)}
+.gallery-count{float:right;font-size:12px;color:rgba(255,255,255,0.5);background:rgba(255,255,255,0.07);padding:3px 10px;border-radius:8px}
+.paug-row{display:flex;align-items:center;justify-content:space-between;margin-bottom:8px}
+.paug-badge{font-size:11px;color:rgba(255,255,255,0.45);background:rgba(255,255,255,0.07);padding:2px 8px;border-radius:6px}
+.msg-box{background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.1);border-radius:10px;overflow:hidden}
+.msg-box-label{font-size:12px;color:rgba(255,255,255,0.55);padding:10px 14px 0;font-weight:500}
+.msg-box textarea{width:100%;background:transparent;border:none;padding:8px 14px 12px;color:#fff;font-size:14px;outline:none;resize:vertical;min-height:100px;line-height:1.6}
+.msg-box textarea::placeholder{color:rgba(255,255,255,0.28)}
+.add-msg-btn{background:rgba(108,92,231,0.15);border:1px solid rgba(108,92,231,0.3);border-radius:8px;padding:8px 14px;color:var(--accent2);font-size:12px;cursor:pointer;display:flex;align-items:center;gap:5px;transition:all .18s}
+.model-select{
+  width:100%;
+  background:rgba(255,255,255,0.05);
+  border:1px solid rgba(255,255,255,0.12);
+  border-radius:10px;
+  padding:14px 16px;
+  color:rgba(255,255,255,0.6);
+  font-size:14px;
+  outline:none;
+  appearance:none;
+  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath fill='rgba(255,255,255,0.4)' d='M6 8L0 0h12z'/%3E%3C/svg%3E");
+  background-repeat:no-repeat;
+  background-position:right 16px center
+}
+.create-footer{
+  position:fixed;
+  bottom:0;
+  left:50%;
+  transform:translateX(-50%);
+  width:min(100%, var(--app-max));
+  padding:10px var(--side-pad) 24px;
+  background:linear-gradient(transparent,#0e0e0e 45%)
+}
+
+/* CHAT */
+#s-chat{
+  overflow:hidden;
+  position:relative;
+  background:#000;
+}
+.chat-bg{
+  position:absolute;
+  inset:0;
+  z-index:0;
+}
+.chat-bg img{
+  width:100%;
+  height:100%;
+  object-fit:cover;
+  display:block;
+}
+.chat-bg::after{
+  content:'';
+  position:absolute;
+  inset:0;
+  background:
+    linear-gradient(
+      180deg,
+      var(--theme-overlay-top) 0%,
+      rgba(0,0,0,0.10) 22%,
+      var(--theme-overlay-mid) 58%,
+      var(--theme-overlay-bottom) 100%
+    );
+  transition:background .28s ease;
+}
+
+.chat-top{
+  position:relative;
+  z-index:2;
+  padding:12px var(--side-pad);
+  display:flex;
+  align-items:center;
+  gap:12px;
+  border-bottom:none;
+  flex-shrink:0;
+  background:linear-gradient(180deg, rgba(0,0,0,0.28), rgba(0,0,0,0));
+}
+.chat-profile{
+  width:42px;
+  height:42px;
+  border-radius:14px;
+  overflow:hidden;
+  flex-shrink:0;
+  position:relative;
+  border:1px solid rgba(255,255,255,0.14);
+  background:#1a1a1a;
+  box-shadow:0 8px 24px rgba(0,0,0,0.28)
+}
+.chat-profile img{width:100%;height:100%;object-fit:cover}
+.chat-profile-fallback{
+  width:100%;
+  height:100%;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  font-size:20px;
+  background:linear-gradient(135deg,#23233a,#141414)
+}
+.chat-profile-ring{
+  position:absolute;
+  inset:-1px;
+  border-radius:14px;
+  border:1px solid rgba(255,255,255,0.18);
+  pointer-events:none
+}
+.chat-top-info{flex:1;min-width:0}
+.chat-top-name-row{display:flex;align-items:center;gap:7px}
+.chat-top-name{
+  font-size:15px;
+  font-weight:800;
+  color:#fff;
+  white-space:nowrap;
+  overflow:hidden;
+  text-overflow:ellipsis
+}
+.chat-status-chip{
+  font-size:10px;
+  padding:3px 7px;
+  border-radius:999px;
+  background:var(--theme-soft);
+  color:#fff;
+  border:1px solid rgba(255,255,255,0.14);
+  transition:all .2s ease;
+}
+.chat-top-sub{
+  font-size:11px;
+  color:rgba(255,255,255,0.72);
+  margin-top:4px;
+  display:flex;
+  align-items:center;
+  gap:7px;
+  white-space:nowrap;
+  overflow:hidden;
+  text-overflow:ellipsis
+}
+.chat-sub-dot{
+  width:4px;
+  height:4px;
+  border-radius:50%;
+  background:rgba(255,255,255,0.35);
+  flex-shrink:0
+}
+.chat-actions{display:flex;gap:6px;flex-shrink:0}
+.chat-action{
+  width:34px;
+  height:34px;
+  border-radius:12px;
+  border:1px solid rgba(255,255,255,0.12);
+  background:rgba(0,0,0,0.22);
+  color:#fff;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  cursor:pointer;
+  transition:.18s;
+  font-size:14px;
+  backdrop-filter:blur(10px)
+}
+.chat-action:hover{background:rgba(255,255,255,0.1)}
+
+.chat-bottom-wrap{
+  position:absolute;
+  left:0;
+  right:0;
+  bottom:0;
+  z-index:2;
+  padding:0 var(--side-pad) 14px;
+}
+.chat-panel{
+  background:rgba(0,0,0,0.72);
+  border:1px solid rgba(255,255,255,0.08);
+  border-radius:18px;
+  overflow:hidden;
+  backdrop-filter:blur(14px);
+  box-shadow:0 16px 40px rgba(0,0,0,0.35);
+}
+.panel-handle-wrap{
+  display:flex;
+  justify-content:center;
+  padding:8px 0 2px;
+}
+.panel-handle{
+  width:74px;
+  height:4px;
+  border-radius:999px;
+  background:rgba(255,255,255,0.7);
+}
+
+.affinity-wrap{
+  padding:8px 14px 8px;
+  border-bottom:1px solid rgba(255,255,255,0.05);
+  background:transparent;
+}
+.affinity-top{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  margin-bottom:7px
+}
+.affinity-label{
+  font-size:12px;
+  color:rgba(255,255,255,0.76);
+  display:flex;
+  align-items:center;
+  gap:6px
+}
+.affinity-label b{color:#fff}
+.affinity-value{
+  font-size:12px;
+  color:#ff8fc2;
+  font-weight:700
+}
+.affinity-bar{
+  width:100%;
+  height:8px;
+  border-radius:999px;
+  background:rgba(255,255,255,0.12);
+  overflow:hidden;
+  position:relative
+}
+.affinity-fill{
+  height:100%;
+  width:28%;
+  background:linear-gradient(90deg,var(--theme-main),var(--theme-sub));
+  border-radius:999px;
+  transition:width .28s ease
+}
+
+.msgs{
+  height:320px;
+  overflow-y:auto;
+  padding:12px 14px;
+  display:flex;
+  flex-direction:column;
+  gap:10px;
+  scrollbar-width:none
+}
+.msgs::-webkit-scrollbar{display:none}
+.msg-row{display:flex;gap:8px;align-items:flex-end}
+.msg-row.me{flex-direction:row-reverse}
+.m-av{
+  width:30px;
+  height:30px;
+  border-radius:50%;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  background:var(--bg2);
+  flex-shrink:0;
+  overflow:hidden;
+  border:1px solid rgba(255,255,255,0.06)
+}
+.m-av img{width:100%;height:100%;object-fit:cover}
+.bubble{
+  max-width:76%;
+  padding:10px 14px;
+  border-radius:16px;
+  font-size:14px;
+  line-height:1.6
+}
+.msg-row:not(.me) .bubble{
+  background:rgba(255,255,255,0.14);
+  border:.5px solid rgba(255,255,255,0.08);
+  border-bottom-left-radius:3px;
+  color:rgba(255,255,255,0.96)
+}
+.msg-row.me .bubble{
+  background:linear-gradient(135deg,var(--theme-main),var(--theme-sub));
+  border-bottom-right-radius:3px;
+  color:#fff
+}
+.msg-time{font-size:10px;color:rgba(255,255,255,0.38);margin-top:3px}
+.scenario-chip{
+  background:var(--theme-soft);
+  border:.5px solid rgba(255,255,255,0.08);
+  border-radius:12px;
+  padding:12px 14px;
+  font-size:12px;
+  color:rgba(255,255,255,0.8);
+  font-style:italic;
+  line-height:1.75
+}
+.scenario-chip b{color:var(--theme-sub);font-style:normal}
+
+.chat-inp-row{
+  padding:10px 12px 12px;
+  border-top:1px solid rgba(255,255,255,0.06);
+  display:flex;
+  gap:8px;
+  align-items:center;
+  flex-shrink:0
+}
+.ci{
+  flex:1;
+  background:rgba(255,255,255,0.1);
+  border:.5px solid rgba(255,255,255,0.1);
+  border-radius:22px;
+  padding:11px 16px;
+  color:#fff;
+  font-size:14px;
+  outline:none
+}
+.ci::placeholder{color:rgba(255,255,255,0.52)}
+.ci:focus{border-color:var(--theme-sub)}
+.send-btn{
+  width:38px;
+  height:38px;
+  border-radius:50%;
+  background:linear-gradient(135deg,var(--theme-main),var(--theme-sub));
+  border:none;
+  color:#fff;
+  font-size:15px;
+  cursor:pointer;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  flex-shrink:0
+}
+.send-btn:hover{opacity:.85}
+
+/* typing */
+.typing-wrap{
+  display:inline-flex;
+  align-items:center;
+  gap:5px;
+  min-height:18px;
+}
+.typing-dot{
+  width:7px;
+  height:7px;
+  border-radius:50%;
+  background:rgba(255,255,255,0.7);
+  animation:typingBounce 1s infinite ease-in-out;
+}
+.typing-dot:nth-child(2){animation-delay:.15s}
+.typing-dot:nth-child(3){animation-delay:.3s}
+@keyframes typingBounce{
+  0%,80%,100%{transform:translateY(0);opacity:.35}
+  40%{transform:translateY(-4px);opacity:1}
+}
+.typing-label{
+  font-size:11px;
+  color:rgba(255,255,255,0.58);
+  margin-left:6px;
+}
+
+@media (max-width:380px){
+  :root{
+    --app-max:390px;
+    --side-pad:12px;
+  }
+  .card-grid{grid-template-columns:repeat(4,1fr);gap:6px}
+  .char-card{aspect-ratio:.6}
+  .msgs{height:280px}
+  .char-name{font-size:8px}
+  .char-type,.char-stats{font-size:6px}
+}
+</style>
+</head>
+<body>
+
+<div id="s-land" class="screen active">
+  <div class="land-bg">
+    <div class="land-orb land-orb-1"></div>
+    <div class="land-orb land-orb-2"></div>
+  </div>
+  <div class="land-inner">
+    <div class="land-logo">AI 캐릭터 대화챗</div>
+    <h1 class="land-headline">평범한 대화에<br><em>지쳤다면?</em></h1>
+    <p class="land-desc">다양한 서사와 테마 조합으로 나만의 AI 캐릭터를 만들고, 짜릿한 로맨스를 경험해 보세요!</p>
+    <div class="land-pills">
+      <span class="land-pill">💕 로맨스</span>
+      <span class="land-pill">🌌 판타지</span>
+      <span class="land-pill">⚔️ 액션</span>
+      <span class="land-pill">🔮 미스터리</span>
+      <span class="land-pill">🎭 드라마</span>
+    </div>
+  </div>
+  <div class="land-footer">
+    <button class="btn-main" onclick="go('s-name')">✦ 시작하기</button>
+    <button class="btn-outline" onclick="go('s-name')">이미 계정이 있어요</button>
+  </div>
+</div>
+
+<div id="s-name" class="screen">
+  <div class="top-bar"><div style="width:32px"></div></div>
+  <div class="name-body">
+    <div style="height:32px"></div>
+    <div class="step-label">STEP 1</div>
+    <h1 class="big-title">캐릭터들이 뭐라고<br>불러주면 좋을까요?</h1>
+    <div class="sub-txt">이름이나 호칭을 자유롭게 정해주세요<br><span style="font-size:12px;color:rgba(255,255,255,0.35)">중복 상관없이 마음대로 설정할 수 있어요</span></div>
+    <div class="input-wrap">
+      <input type="text" class="txt-input" placeholder="이름 또는 별명을 입력해주세요" maxlength="20" oninput="document.getElementById('nc').textContent=this.value.length+'/20'"/>
+      <span class="char-count" id="nc">0/20</span>
+    </div>
+  </div>
+  <div class="lang-row">
+    <button class="lang-btn">English</button>
+    <span class="lang-sep">·</span>
+    <button class="lang-btn">日本語</button>
+  </div>
+  <div class="name-footer"><button class="btn-main" onclick="go('s-theme')">다음</button></div>
+</div>
+
+<div id="s-theme" class="screen">
+  <div class="top-bar">
+    <button class="btn-back" onclick="go('s-name')">‹</button>
+    <span class="step-badge">2/3</span>
+  </div>
+  <div style="flex:1;padding:0 var(--side-pad);overflow-y:auto">
+    <div style="height:16px"></div>
+    <div class="step-label">STEP 2</div>
+    <h1 class="big-title">어떤 작품을<br>선호하세요?</h1>
+    <div class="sub-txt">맞춤 캐릭터를 추천해드릴게요</div>
+    <div class="choice-list">
+      <div class="choice-card" onclick="pickTheme(this)">
+        <div class="choice-title">남성향</div>
+        <div class="choice-tags">액션, 판타지, 전략</div>
+      </div>
+      <div class="choice-card" onclick="pickTheme(this)">
+        <div class="choice-title">여성향</div>
+        <div class="choice-tags">로맨스, 감성, 드라마</div>
+      </div>
+      <div class="choice-card" onclick="pickTheme(this)">
+        <div class="choice-title">상관없음</div>
+        <div class="choice-tags">다 좋아요!</div>
+      </div>
+    </div>
+  </div>
+  <div class="lang-row">
+    <button class="lang-btn">English</button>
+    <span class="lang-sep">·</span>
+    <button class="lang-btn">日本語</button>
+  </div>
+</div>
+
+<div id="s-chars" class="screen">
+  <div class="chars-header">
+    <div class="top-bar" style="padding:18px var(--side-pad) 10px">
+      <button class="btn-back" onclick="go('s-theme')">‹</button>
+      <span class="step-badge">3/3</span>
+    </div>
+    <div class="step-label" style="padding:0 var(--side-pad)">STEP 3</div>
+    <div class="chars-title" style="padding:0 var(--side-pad)">어떤 캐릭터와<br>대화할까요?</div>
+    <div class="chars-sub" style="padding:0 var(--side-pad)">마음에 드는 캐릭터를 골라보세요</div>
+    <div class="filter-tabs" style="padding:0 var(--side-pad)">
+      <button class="ftab on" onclick="setFtab(this)">전체</button>
+      <button class="ftab" onclick="setFtab(this)">🔥 인기</button>
+      <button class="ftab" onclick="setFtab(this)">✨ 신규</button>
+      <button class="ftab" onclick="setFtab(this)">💕 로맨스</button>
+      <button class="ftab" onclick="setFtab(this)">🌌 판타지</button>
+    </div>
+  </div>
+
+  <div class="create-row">
+    <button class="btn-create-char" onclick="go('s-create')"><span style="font-size:16px;line-height:1">＋</span> 나만의 캐릭터 만들기</button>
+  </div>
+
+  <div class="chars-scroll">
+    <div class="section-lbl">인기 캐릭터 ✨</div>
+    <div class="card-grid">
+      <div class="char-card" data-name="에셔 베넷" onclick="pickChar(this,'에셔 베넷','🧊',characterThumbMap['에셔 베넷'])">
+        <img class="char-thumb" alt="">
+        <div class="char-gradient"></div>
+        <div class="cbadge badge-hot">HOT</div>
+        <div class="card-actions">
+          <button class="card-mini-btn bookmark" onclick="toggleBookmark(event,this)">☆</button>
+          <button class="card-mini-btn like" onclick="toggleLike(event,this)">♥</button>
+        </div>
+        <div class="char-info">
+          <div class="char-name">에셔 베넷</div>
+          <div class="char-type">냉철한 킨카</div>
+          <div class="char-stats"><span>♥ <span class="like-count">4.7만</span></span><span>💬 64</span></div>
+        </div>
+      </div>
+
+      <div class="char-card" data-name="카일" onclick="pickChar(this,'카일','⚡',characterThumbMap['카일'])">
+        <img class="char-thumb" alt="">
+        <div class="char-gradient"></div>
+        <div class="cbadge badge-hot">HOT</div>
+        <div class="card-actions">
+          <button class="card-mini-btn bookmark" onclick="toggleBookmark(event,this)">☆</button>
+          <button class="card-mini-btn like" onclick="toggleLike(event,this)">♥</button>
+        </div>
+        <div class="char-info">
+          <div class="char-name">카일</div>
+          <div class="char-type">반항 스트라이커</div>
+          <div class="char-stats"><span>♥ <span class="like-count">7.1만</span></span><span>💬 20</span></div>
+        </div>
+      </div>
+
+      <div class="char-card" data-name="리암" onclick="pickChar(this,'리암','🌙',characterThumbMap['리암'])">
+        <img class="char-thumb" alt="">
+        <div class="char-gradient"></div>
+        <div class="cbadge badge-new">NEW</div>
+        <div class="card-actions">
+          <button class="card-mini-btn bookmark" onclick="toggleBookmark(event,this)">☆</button>
+          <button class="card-mini-btn like" onclick="toggleLike(event,this)">♥</button>
+        </div>
+        <div class="char-info">
+          <div class="char-name">리암</div>
+          <div class="char-type">무뚝뚝한 라인배커</div>
+          <div class="char-stats"><span>♥ <span class="like-count">7만</span></span><span>💬 20</span></div>
+        </div>
+      </div>
+
+      <div class="char-card" data-name="하루토" onclick="pickChar(this,'하루토','☀️',characterThumbMap['하루토'])">
+        <img class="char-thumb" alt="">
+        <div class="char-gradient"></div>
+        <div class="card-actions">
+          <button class="card-mini-btn bookmark" onclick="toggleBookmark(event,this)">☆</button>
+          <button class="card-mini-btn like" onclick="toggleLike(event,this)">♥</button>
+        </div>
+        <div class="char-info">
+          <div class="char-name">하루토</div>
+          <div class="char-type">밝은 야구부</div>
+          <div class="char-stats"><span>♥ <span class="like-count">1.3만</span></span><span>💬 6</span></div>
+        </div>
+      </div>
+
+      <div class="char-card" data-name="황태성" onclick="pickChar(this,'황태성','🔥',characterThumbMap['황태성'])">
+        <img class="char-thumb" alt="">
+        <div class="char-gradient"></div>
+        <div class="cbadge badge-best">BEST</div>
+        <div class="card-actions">
+          <button class="card-mini-btn bookmark" onclick="toggleBookmark(event,this)">☆</button>
+          <button class="card-mini-btn like" onclick="toggleLike(event,this)">♥</button>
+        </div>
+        <div class="char-info">
+          <div class="char-name">황태성</div>
+          <div class="char-type">카리스마 팀장</div>
+          <div class="char-stats"><span>♥ <span class="like-count">2.6만</span></span><span>💬 18</span></div>
+        </div>
+      </div>
+
+      <div class="char-card" data-name="오르도" onclick="pickChar(this,'오르도','🌹',characterThumbMap['오르도'])">
+        <img class="char-thumb" alt="">
+        <div class="char-gradient"></div>
+        <div class="card-actions">
+          <button class="card-mini-btn bookmark" onclick="toggleBookmark(event,this)">☆</button>
+          <button class="card-mini-btn like" onclick="toggleLike(event,this)">♥</button>
+        </div>
+        <div class="char-info">
+          <div class="char-name">오르도</div>
+          <div class="char-type">다정한 왕자</div>
+          <div class="char-stats"><span>♥ <span class="like-count">3.2만</span></span><span>💬 22</span></div>
+        </div>
+      </div>
+
+      <div class="char-card" data-name="세인" onclick="pickChar(this,'세인','🦋',characterThumbMap['세인'])">
+        <img class="char-thumb" alt="">
+        <div class="char-gradient"></div>
+        <div class="card-actions">
+          <button class="card-mini-btn bookmark" onclick="toggleBookmark(event,this)">☆</button>
+          <button class="card-mini-btn like" onclick="toggleLike(event,this)">♥</button>
+        </div>
+        <div class="char-info">
+          <div class="char-name">세인</div>
+          <div class="char-type">몽환 시인</div>
+          <div class="char-stats"><span>♥ <span class="like-count">9.3천</span></span><span>💬 11</span></div>
+        </div>
+      </div>
+
+      <div class="char-card" data-name="테오" onclick="pickChar(this,'테오','🗡️',characterThumbMap['테오'])">
+        <img class="char-thumb" alt="">
+        <div class="char-gradient"></div>
+        <div class="card-actions">
+          <button class="card-mini-btn bookmark" onclick="toggleBookmark(event,this)">☆</button>
+          <button class="card-mini-btn like" onclick="toggleLike(event,this)">♥</button>
+        </div>
+        <div class="char-info">
+          <div class="char-name">테오</div>
+          <div class="char-type">무심 기사</div>
+          <div class="char-stats"><span>♥ <span class="like-count">1.1만</span></span><span>💬 9</span></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="section-lbl">차원이 다른 로맨스 🔮</div>
+    <div class="card-grid">
+      <div class="char-card" data-name="메리" onclick="pickChar(this,'메리','👻',characterThumbMap['메리'])">
+        <img class="char-thumb" alt="">
+        <div class="char-gradient"></div>
+        <div class="card-actions">
+          <button class="card-mini-btn bookmark" onclick="toggleBookmark(event,this)">☆</button>
+          <button class="card-mini-btn like" onclick="toggleLike(event,this)">♥</button>
+        </div>
+        <div class="char-info">
+          <div class="char-name">메리</div>
+          <div class="char-type">포스트 아포칼립스</div>
+          <div class="char-stats"><span>♥ <span class="like-count">3.9만</span></span><span>💬 42</span></div>
+        </div>
+      </div>
+
+      <div class="char-card" data-name="팽" onclick="pickChar(this,'팽','🐉',characterThumbMap['팽'])">
+        <img class="char-thumb" alt="">
+        <div class="char-gradient"></div>
+        <div class="card-actions">
+          <button class="card-mini-btn bookmark" onclick="toggleBookmark(event,this)">☆</button>
+          <button class="card-mini-btn like" onclick="toggleLike(event,this)">♥</button>
+        </div>
+        <div class="char-info">
+          <div class="char-name">팽</div>
+          <div class="char-type">조용한 용사</div>
+          <div class="char-stats"><span>♥ <span class="like-count">3.6만</span></span><span>💬 20</span></div>
+        </div>
+      </div>
+
+      <div class="char-card" data-name="북부 대공" onclick="pickChar(this,'북부 대공','🌿',characterThumbMap['북부 대공'])">
+        <img class="char-thumb" alt="">
+        <div class="char-gradient"></div>
+        <div class="cbadge badge-new">NEW</div>
+        <div class="card-actions">
+          <button class="card-mini-btn bookmark" onclick="toggleBookmark(event,this)">☆</button>
+          <button class="card-mini-btn like" onclick="toggleLike(event,this)">♥</button>
+        </div>
+        <div class="char-info">
+          <div class="char-name">북부 대공</div>
+          <div class="char-type">빙의 판타지</div>
+          <div class="char-stats"><span>♥ <span class="like-count">3.4만</span></span><span>💬 34</span></div>
+        </div>
+      </div>
+
+      <div class="char-card" data-name="진령" onclick="pickChar(this,'진령','⚔️',characterThumbMap['진령'])">
+        <img class="char-thumb" alt="">
+        <div class="char-gradient"></div>
+        <div class="card-actions">
+          <button class="card-mini-btn bookmark" onclick="toggleBookmark(event,this)">☆</button>
+          <button class="card-mini-btn like" onclick="toggleLike(event,this)">♥</button>
+        </div>
+        <div class="char-info">
+          <div class="char-name">진령</div>
+          <div class="char-type">집착 무사</div>
+          <div class="char-stats"><span>♥ <span class="like-count">5.1천</span></span><span>💬 7</span></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="chars-footer" id="chars-footer" style="display:none">
+    <div class="sel-row">
+      <div class="sel-av" id="sel-av-wrap"><span id="sel-av-emoji">🧊</span></div>
+      <span class="sel-nm" id="sel-nm">캐릭터 선택됨</span>
+      <button class="sel-clear" onclick="clearChar()">취소</button>
+    </div>
+    <button class="btn-main" onclick="startSelectedChat()">이 캐릭터와 시작하기 →</button>
+  </div>
+</div>
+
+<div id="s-create" class="screen">
+  <div class="create-top">
+    <button class="btn-back" onclick="go('s-chars')">‹</button>
+    <span class="create-top-title">새로운 캐릭터 생성</span>
+    <div style="width:32px"></div>
+  </div>
+
+  <div class="ctabs">
+    <button class="ctab on" onclick="switchTab(this,'tp-basic')">기본 정보</button>
+    <button class="ctab" onclick="switchTab(this,'tp-gallery')">갤러리</button>
+    <button class="ctab" onclick="switchTab(this,'tp-detail')">상세 설정</button>
+  </div>
+
+  <div class="ctab-panels">
+    <div class="ctab-panel on" id="tp-basic">
+      <div class="ai-gen-section">
+        <div class="ai-gen-label">
+          메인 이미지 <span class="req">*</span>
+          <span class="badge-ai">AI 생성</span>
+        </div>
+
+        <div class="ai-gen-row">
+          <textarea class="prompt-box" id="prompt-input" placeholder="만들고 싶은 이미지를 입력해보세요!&#10;예) 차가운 눈빛의 검은 머리 남자, 선글라스, 재킷"></textarea>
+          <button class="gen-btn" onclick="generateImage()">
+            <span style="font-size:20px">✦</span>
+            <span style="font-size:12px;font-weight:700">만들기</span>
+          </button>
+        </div>
+
+        <div class="gen-result" id="gen-result">
+          <img id="gen-img" src="" alt="생성된 이미지">
+          <div class="gen-result-overlay"></div>
+          <div class="gen-result-btns">
+            <button class="gen-action-btn regen" onclick="generateImage()">↻ 다시 만들기</button>
+            <button class="gen-action-btn use" onclick="useImage()">✓ 이 이미지 사용</button>
+          </div>
+        </div>
+
+        <div class="selected-img-preview" id="selected-preview">
+          <img class="preview-thumb" id="preview-thumb" src="" alt="">
+          <div class="preview-info">
+            <div class="preview-info-title">메인 이미지 설정 완료</div>
+            <div class="preview-info-sub">✓ AI로 생성된 이미지</div>
+          </div>
+          <button class="preview-remove" onclick="removeImage()">✕</button>
+        </div>
+      </div>
+
+      <div class="form-field">
+        <div class="field-label">이름 <span class="req">*</span></div>
+        <input type="text" class="field-input" id="char-name-input" placeholder="이름 입력..." maxlength="35" oninput="document.getElementById('n-cnt').textContent=this.value.length+'/35 B'"/>
+        <div class="field-count" id="n-cnt">0/35 B</div>
+      </div>
+
+      <div class="form-field">
+        <div class="field-label">캐릭터 소개말 <span class="req">*</span></div>
+        <textarea class="field-input" placeholder="캐릭터에 대한 소개를 간략하게 작성해 주세요." oninput="document.getElementById('s-cnt').textContent=this.value.length+'/12000 B'" style="min-height:110px"></textarea>
+        <div class="field-count" id="s-cnt">0/12000 B</div>
+      </div>
+
+      <div class="form-field">
+        <div class="field-label">태그</div>
+        <input type="text" class="field-input" placeholder="태그 작성..."/>
+      </div>
+
+      <div class="form-field">
+        <div class="field-label">타겟 유저층</div>
+        <div class="target-row">
+          <button class="target-btn on" onclick="setTarget(this)">전체</button>
+          <button class="target-btn" onclick="setTarget(this)">남성향</button>
+          <button class="target-btn" onclick="setTarget(this)">여성향</button>
+        </div>
+      </div>
+
+      <div class="nsfw-row">
+        <div class="nsfw-info">
+          <div class="nsfw-title">성인 컨텐츠 <span class="nsfw-badge">N</span></div>
+          <div class="nsfw-desc">해당 캐릭터는 NSFW 컨텐츠 입니다.</div>
+        </div>
+        <button class="toggle" onclick="this.classList.toggle('on')"></button>
+      </div>
+    </div>
+
+    <div class="ctab-panel" id="tp-gallery">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px">
+        <div class="field-label" style="margin:0">추가 이미지 관리</div>
+        <span class="gallery-count">0 / 100</span>
+      </div>
+      <div class="gallery-info">
+        <div class="gallery-info-text">이미지를 업로드하고 참조 키를 설정하면 대화에서 <span class="gallery-info-code">&#123;&#123;img::참조키&#125;&#125;</span> 형태로 호출할 수 있어요.<br>설명란에 "언제 등장해야 하는지"를 적어두면, 그 상황에 맞춰 AI가 이미지를 등장시킵니다.</div>
+        <div class="gallery-badges">
+          <span class="g-badge">🌐 공개: 전체 노출</span>
+          <span class="g-badge">👁 조건부: 해금</span>
+          <span class="g-badge">🔒 비공개: 숨김</span>
+        </div>
+      </div>
+      <button class="gallery-add-btn">🖼 이미지 추가하기</button>
+    </div>
+
+    <div class="ctab-panel" id="tp-detail">
+      <div class="form-field">
+        <div class="paug-row">
+          <div class="field-label" style="margin:0">프롬프트 <span class="req">*</span></div>
+          <div style="display:flex;align-items:center;gap:8px">
+            <span style="font-size:13px;color:rgba(255,255,255,0.5)">ⓘ <span class="paug-badge">PAUG(무제한)</span></span>
+            <button class="toggle" onclick="this.classList.toggle('on')"></button>
+          </div>
+        </div>
+        <textarea class="field-input" placeholder="캐릭터 외형, 성격, 배경, 이야기 등을 작성해주세요." oninput="document.getElementById('p-cnt').textContent=this.value.length+'/16000 B'" style="min-height:200px"></textarea>
+        <div class="field-count" id="p-cnt">0/16000 B</div>
+      </div>
+
+      <div class="form-field">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
+          <div class="field-label" style="margin:0">첫 메시지 <span class="req">*</span></div>
+          <button class="add-msg-btn">＋ 첫 메시지 추가</button>
+        </div>
+        <div class="msg-box">
+          <div class="msg-box-label">Message #1</div>
+          <textarea placeholder="캐릭터가 대화를 시작할 때 보내는 첫 메시지를 설정하세요." oninput="document.getElementById('m-cnt').textContent=this.value.length+'/5500 B'"></textarea>
+        </div>
+        <div class="field-count" id="m-cnt">0/5500 B</div>
+      </div>
+
+      <div class="form-field">
+        <div class="field-label">추천 모델</div>
+        <select class="model-select">
+          <option value="">추천 안함</option>
+          <option>GPT-4o</option>
+          <option>Claude Sonnet</option>
+        </select>
+      </div>
+    </div>
+  </div>
+
+  <div class="create-footer">
+    <button class="btn-main" onclick="completeCreate()">캐릭터 생성 완료 →</button>
+  </div>
+</div>
+
+<div id="s-chat" class="screen">
+  <div class="chat-bg">
+    <img id="chat-bg-img" src="images/chat-bg.png" alt="배경 이미지">
+  </div>
+
+  <div class="chat-top">
+    <button class="btn-back" onclick="go('s-chars')">‹</button>
+
+    <div class="chat-profile" id="chat-profile">
+      <div class="chat-profile-fallback">🧊</div>
+      <div class="chat-profile-ring"></div>
+    </div>
+
+    <div class="chat-top-info">
+      <div class="chat-top-name-row">
+        <div class="chat-top-name" id="chat-nm">캐릭터</div>
+        <span class="chat-status-chip" id="chat-status-chip">AI 캐릭터</span>
+      </div>
+      <div class="chat-top-sub">
+        <span>호감도 상승 중</span>
+        <span class="chat-sub-dot"></span>
+        <span id="chat-sub-type">대화 가능</span>
+      </div>
+    </div>
+
+    <div class="chat-actions">
+      <button class="chat-action" onclick="alert('통화 기능 UI 예시')">📞</button>
+      <button class="chat-action" onclick="alert('설정 기능 UI 예시')">⚙️</button>
+    </div>
+  </div>
+
+  <div class="chat-bottom-wrap">
+    <div class="chat-panel">
+      <div class="panel-handle-wrap">
+        <div class="panel-handle"></div>
+      </div>
+
+      <div class="affinity-wrap">
+        <div class="affinity-top">
+          <div class="affinity-label">💕 <b>호감도</b></div>
+          <div class="affinity-value" id="affinity-value">28%</div>
+        </div>
+        <div class="affinity-bar">
+          <div class="affinity-fill" id="affinity-fill"></div>
+        </div>
+      </div>
+
+      <div class="msgs" id="msgs"></div>
+
+      <div class="chat-inp-row">
+        <input type="text" class="ci" id="ci" placeholder="자유롭게 입력해요..." onkeydown="if(event.key==='Enter')sendMsg()">
+        <button class="send-btn" onclick="sendMsg()">➤</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+var MAIN_IMAGE_SRC = 'images/main-character.png';
+var DEFAULT_CHAT_BG = 'images/chat-bg.png';
+
+var characterThumbMap = {
+  '에셔 베넷': 'images/asher-bennett.png',
+  '카일': 'images/kyle.png',
+  '리암': 'images/liam.png',
+  '하루토': 'images/haruto.png',
+  '황태성': 'images/taesung.png',
+  '오르도': 'images/ordo.png',
+  '세인': 'images/sein.png',
+  '테오': 'images/theo.png',
+  '메리': 'images/mary.png',
+  '팽': 'images/peng.png',
+  '북부 대공': 'images/duke.png',
+  '진령': 'images/jinryeong.png'
+};
+
+var characterThemeMap = {
+  '에셔 베넷': {
+    main:'#4F6DFF', sub:'#9DB2FF', soft:'rgba(79,109,255,0.18)',
+    overlayTop:'rgba(33,47,97,0.28)', overlayMid:'rgba(35,55,122,0.20)', overlayBottom:'rgba(8,16,44,0.68)'
+  },
+  '카일': {
+    main:'#FF5E57', sub:'#FF9A62', soft:'rgba(255,94,87,0.18)',
+    overlayTop:'rgba(120,30,18,0.26)', overlayMid:'rgba(166,62,24,0.18)', overlayBottom:'rgba(58,15,10,0.68)'
+  },
+  '리암': {
+    main:'#5B6C8F', sub:'#A8B4CC', soft:'rgba(91,108,143,0.18)',
+    overlayTop:'rgba(45,56,75,0.28)', overlayMid:'rgba(67,82,107,0.18)', overlayBottom:'rgba(18,24,34,0.70)'
+  },
+  '하루토': {
+    main:'#FF8A3D', sub:'#FFD36E', soft:'rgba(255,138,61,0.18)',
+    overlayTop:'rgba(126,66,18,0.24)', overlayMid:'rgba(173,103,35,0.18)', overlayBottom:'rgba(54,31,7,0.66)'
+  },
+  '황태성': {
+    main:'#7A5CFF', sub:'#C1A6FF', soft:'rgba(122,92,255,0.18)',
+    overlayTop:'rgba(61,37,128,0.28)', overlayMid:'rgba(88,56,158,0.20)', overlayBottom:'rgba(22,12,53,0.70)'
+  },
+  '오르도': {
+    main:'#C99A2E', sub:'#F3D78A', soft:'rgba(201,154,46,0.18)',
+    overlayTop:'rgba(115,84,20,0.22)', overlayMid:'rgba(148,114,40,0.16)', overlayBottom:'rgba(49,35,8,0.62)'
+  },
+  '세인': {
+    main:'#7B4DFF', sub:'#C79BFF', soft:'rgba(123,77,255,0.18)',
+    overlayTop:'rgba(63,34,128,0.28)', overlayMid:'rgba(91,55,166,0.20)', overlayBottom:'rgba(24,10,54,0.72)'
+  },
+  '테오': {
+    main:'#49607A', sub:'#8EA7C5', soft:'rgba(73,96,122,0.18)',
+    overlayTop:'rgba(33,48,66,0.28)', overlayMid:'rgba(49,71,97,0.18)', overlayBottom:'rgba(12,20,31,0.70)'
+  },
+  '메리': {
+    main:'#D65076', sub:'#FF9BB4', soft:'rgba(214,80,118,0.18)',
+    overlayTop:'rgba(104,31,58,0.26)', overlayMid:'rgba(146,49,80,0.18)', overlayBottom:'rgba(48,12,24,0.68)'
+  },
+  '팽': {
+    main:'#2E8B73', sub:'#8AE0C6', soft:'rgba(46,139,115,0.18)',
+    overlayTop:'rgba(20,74,61,0.26)', overlayMid:'rgba(30,107,88,0.18)', overlayBottom:'rgba(8,34,28,0.68)'
+  },
+  '북부 대공': {
+    main:'#5E7FA3', sub:'#C8D7EA', soft:'rgba(94,127,163,0.18)',
+    overlayTop:'rgba(44,60,82,0.28)', overlayMid:'rgba(62,86,118,0.18)', overlayBottom:'rgba(13,22,37,0.72)'
+  },
+  '진령': {
+    main:'#8D2B4E', sub:'#E08AA8', soft:'rgba(141,43,78,0.18)',
+    overlayTop:'rgba(84,20,40,0.28)', overlayMid:'rgba(120,33,58,0.18)', overlayBottom:'rgba(36,8,18,0.72)'
+  }
+};
+
+var characterDialogMap = {
+  '에셔 베넷': {
+    type: '냉철한 킨카',
+    scenario: '📍 <b>시나리오 시작</b> — 창밖엔 늦은 밤비가 유리창을 두드리고, 아무도 없는 복도 끝 비상등만이 푸른빛을 흘린다. 늘 차갑기만 하던 에셔는 오늘따라 이상하리만큼 오래 너를 바라본다...',
+    replies: [
+      '이상하네. 오늘은 다른 누구보다 네가 먼저 눈에 들어왔어.',
+      '난 원래 감정에 시간 안 써. 그런데 너한텐 자꾸 예외가 생겨.',
+      '지금 네 표정, 나 때문에 흔들리는 거 맞지?',
+      '이 정도 거리에서 널 보면, 생각보다 참기 힘들어.',
+      '그러니까… 도망가지 마. 내가 처음으로 욕심내는 사람이 너야.'
+    ],
+    final: '더 솔직해져도 되지? 지금 네가 허락하면, 난 정말 멈출 생각이 없어.'
+  },
+  '카일': {
+    type: '반항 스트라이커',
+    scenario: '📍 <b>시나리오 시작</b> — 경기 끝난 뒤 텅 빈 운동장. 카일은 땀에 젖은 머리칼을 넘기며 너를 보자 피식 웃지만, 눈빛만큼은 평소보다 훨씬 뜨겁다...',
+    replies: [
+      '야, 너 오늘 왜 이렇게 예뻐 보이냐. 반칙 아냐?',
+      '나 원래 아무한테나 안 이래. 근데 넌 많이 신경 쓰여.',
+      '경기 뛸 때보다 네 앞에 서면 심장이 더 빨리 뛰어.',
+      '네가 웃는 거 보면 자꾸 못 참겠어.',
+      '장난 아닌 거 알지? 나 지금 진심이야.'
+    ],
+    final: '한 번만 말해봐. 너도 나 보고 싶었다고.'
+  },
+  '리암': {
+    type: '무뚝뚝한 라인배커',
+    scenario: '📍 <b>시나리오 시작</b> — 야간 훈련 후 조용한 관중석. 리암은 한참 아무 말도 하지 않다가, 네 쪽으로 고개를 돌리며 낮게 숨을 고른다...',
+    replies: [
+      '…너 옆은 이상하게 편해.',
+      '난 말 잘 못해. 그래도 네 앞에선 자꾸 말하고 싶어져.',
+      '네가 내 이름 부를 때마다, 괜히 마음이 약해져.',
+      '오늘은 조금 더 같이 있고 싶어.',
+      '지금은 네가 내 옆에 있는 게 제일 좋다.'
+    ],
+    final: '나 원래 말보다 행동이 먼저야. 그러니까, 이제 보여줘도 돼?'
+  },
+  '하루토': {
+    type: '밝은 야구부',
+    scenario: '📍 <b>시나리오 시작</b> — 노을이 거의 다 져가는 운동장. 늘 해맑은 하루토는 오늘따라 괜히 수줍은 얼굴로 네 앞에 서 있다...',
+    replies: [
+      '있잖아, 너 보면 나 진짜 바보처럼 웃게 돼.',
+      '친구들 앞에선 티 안 내려고 했는데 한계야.',
+      '네가 내 응원 와준 날부터 계속 네 생각만 했어.',
+      '좋아해. 엄청 많이.',
+      '오늘부터 네 하루에 내가 꼭 들어가고 싶어.'
+    ],
+    final: '그렇게 웃지 마. 진짜 평생 좋아하게 될 것 같으니까.'
+  },
+  '황태성': {
+    type: '카리스마 팀장',
+    scenario: '📍 <b>시나리오 시작</b> — 야근이 끝난 늦은 사무실. 황태성 팀장은 느슨하게 넥타이를 풀며, 이제야 숨길 수 없다는 듯 너를 바라본다...',
+    replies: [
+      '오늘도 수고했어. 그런데… 퇴근시키기 싫네.',
+      '업무 얘기만 하려 했는데, 네 앞에선 자꾸 선을 넘고 싶어져.',
+      '네가 밤늦게까지 남아 있으면 자꾸 책임지고 싶어져.',
+      '이성적으로 굴려고 했는데 실패했어.',
+      '오늘은… 조금만 개인적인 마음을 허락해줘.'
+    ],
+    final: '회사에선 못 했던 말, 지금은 하고 싶어. 난 너를 꽤 오래전부터 좋아하고 있었어.'
+  },
+  '오르도': {
+    type: '다정한 왕자',
+    scenario: '📍 <b>시나리오 시작</b> — 달빛이 흐르는 정원, 꽃잎이 흩날리는 밤. 오르도는 세상에 너만 남은 것처럼 부드럽게 미소 짓는다...',
+    replies: [
+      '오늘 밤의 달도 아름답지만, 네 앞에선 그 빛조차 흐려 보이는군.',
+      '수많은 꽃 중에서도 내 눈엔 너 하나만 선명해.',
+      '허락해준다면, 오늘 밤만은 네 곁에 머무르고 싶어.',
+      '손을 잡아도 될까? 놓치고 싶지 않은 온기라서.',
+      '그러니 부디, 내 진심을 외면하지 말아줘.'
+    ],
+    final: '내 마음은 이미 네 앞에 무릎 꿇었어. 이제 네 대답만 기다리면 돼.'
+  },
+  '세인': {
+    type: '몽환 시인',
+    scenario: '📍 <b>시나리오 시작</b> — 새벽 안개가 스민 창가. 세인은 네 얼굴을 오래 바라보다가, 한 편의 시를 읽듯 조용히 말을 꺼낸다...',
+    replies: [
+      '너는 참 이상한 사람이야. 내 밤을 전부 가져가버렸으니까.',
+      '눈을 감아도 네가 보이고, 눈을 떠도 결국 네가 보여.',
+      '오늘 네 이름을 마음속으로 백 번쯤 불렀어.',
+      '이 밤이 끝나지 않았으면 좋겠어.',
+      '내 시의 마지막 행은 언제나 너였어.'
+    ],
+    final: '내가 너를 사랑한다고 말하면, 그 순간부터 너는 내 가장 아름다운 문장이 될까?'
+  },
+  '테오': {
+    type: '무심 기사',
+    scenario: '📍 <b>시나리오 시작</b> — 성벽 위 늦은 밤 순찰길. 테오는 검을 내려놓고, 처음으로 감정을 숨기지 못한 눈빛으로 너를 돌아본다...',
+    replies: [
+      '위험하니 내 곁에서 떨어지지 마.',
+      '…그건 명령이 아니라 부탁이야.',
+      '널 지키는 일엔 이유가 필요 없다고 생각했는데, 이제는 알아.',
+      '너를 볼 때마다 내 모든 경계가 풀려.',
+      '그래도 괜찮다면, 끝까지 네 곁을 지키고 싶다.'
+    ],
+    final: '기사의 맹세보다 더 무거운 말을 하겠어. 나는 너를 사랑한다.'
+  },
+  '메리': {
+    type: '포스트 아포칼립스',
+    scenario: '📍 <b>시나리오 시작</b> — 폐허가 된 도시의 옥상. 메리는 네 어깨 위에 외투를 걸쳐주고, 감춰온 표정을 천천히 드러낸다...',
+    replies: [
+      '이런 세상에서 누굴 좋아하게 될 줄은 몰랐어. 특히 너 같은 사람을.',
+      '망가진 세상인데도, 너만 보면 이상하게 살아 있고 싶어져.',
+      '총보다 네 손이 더 따뜻하더라.',
+      '이 폐허 속에서도 너는 내 유일한 낭만이야.',
+      '그러니까 오늘은 내 곁에 있어 줘. 끝까지.'
+    ],
+    final: '세상이 무너져도 상관없어. 네가 내 손 안에만 있다면.'
+  },
+  '팽': {
+    type: '조용한 용사',
+    scenario: '📍 <b>시나리오 시작</b> — 별이 쏟아지는 산등성이. 팽은 긴 침묵 끝에 조심스럽게 네 손끝을 건드리며 시선을 들지 못한다...',
+    replies: [
+      '…너와 있으면, 조용한 밤도 심장 소리로 가득 차.',
+      '나는 말보다 기다리는 게 익숙한데, 너 앞에선 자꾸 서두르게 돼.',
+      '이런 마음을 뭐라고 불러야 하는지 이제 알 것 같아.',
+      '오늘 밤은 유난히 네가 예쁘다.',
+      '그래서 자꾸, 내 사람이었으면 좋겠다는 생각을 해.'
+    ],
+    final: '한 번만 말해줘. 나를 원한다고. 그럼 난 끝까지 네게 갈게.'
+  },
+  '북부 대공': {
+    type: '빙의 판타지',
+    scenario: '📍 <b>시나리오 시작</b> — 눈보라가 멎은 북부 성채의 발코니. 얼음처럼 냉정한 대공은 오늘만큼은 너에게서 시선을 떼지 못한다...',
+    replies: [
+      '추운가. 이리 와. 내 곁이 그나마 따뜻할 테니.',
+      '사람들은 내가 얼음 같다고 하지. 하지만 너 앞에선 쉽게 녹아버려.',
+      '네가 웃을 때마다 북부의 겨울이 끝나는 기분이 든다.',
+      '나는 너를 원해. 아주 오래전부터 정해진 운명처럼.',
+      '그러니 더 이상 도망치지 마. 내게 와.'
+    ],
+    final: '이 북부의 모든 눈보다 차갑던 내가, 너 하나로 이렇게 뜨거워졌어.'
+  },
+  '진령': {
+    type: '집착 무사',
+    scenario: '📍 <b>시나리오 시작</b> — 달빛 비친 고요한 마당. 검을 내려놓은 진령은 억눌러 온 감정을 더는 숨기지 못한 채 천천히 너에게 다가온다...',
+    replies: [
+      '이리 와. 오늘은 네 얼굴을 오래 보고 싶다.',
+      '남들이 널 보는 시선조차 거슬린다. 우습지.',
+      '이제는 네 시간도, 네 시선도, 네 마음도 전부 갖고 싶다.',
+      '너를 생각하지 않는 순간이 거의 없다.',
+      '그러니 말해 봐. 나를 밀어낼 건지, 아니면 받아들일 건지.'
+    ],
+    final: '경고하는데도 못 멈추겠어. 나는 한 번 품은 사람을 절대 놓지 않는다.'
+  }
+};
+
+var sel = {name:'에셔 베넷', emoji:'🧊', imgUrl:characterThumbMap['에셔 베넷']};
+var generatedImgUrl = null;
+var selectedImgUrl = null;
+var chatStarted = false;
+var replyCursor = 0;
+var affinity = 28;
+var typingTimer = null;
+var readingTimer = null;
+
+initThumbs();
+syncAffinity();
+applyCharacterTheme();
+
+function initThumbs(){
+  document.querySelectorAll('.char-card').forEach(function(card){
+    var name = card.dataset.name;
+    var img = card.querySelector('.char-thumb');
+    img.src = characterThumbMap[name] || '';
+    img.onerror = function(){
+      this.style.opacity = '0.15';
+    };
+  });
+}
+
+function getCurrentDialog(){
+  return characterDialogMap[sel.name] || {
+    type: '대화 가능',
+    scenario: '📍 <b>시나리오 시작</b> — 늦은 밤, 둘만 남은 대화창. 평소보다 조금 더 특별한 공기가 흐르기 시작한다...',
+    replies: ['난 항상 너한테 관심이 있었어. 넌?'],
+    final: '오늘은 조금 더 솔직해져도 될까?'
+  };
+}
+
+function setStatusChip(text){
+  var chip = document.getElementById('chat-status-chip');
+  if(chip) chip.textContent = text;
+}
+
+function applyCharacterTheme(){
+  var theme = characterThemeMap[sel.name] || characterThemeMap['에셔 베넷'];
+  document.documentElement.style.setProperty('--theme-main', theme.main);
+  document.documentElement.style.setProperty('--theme-sub', theme.sub);
+  document.documentElement.style.setProperty('--theme-soft', theme.soft);
+  document.documentElement.style.setProperty('--theme-overlay-top', theme.overlayTop);
+  document.documentElement.style.setProperty('--theme-overlay-mid', theme.overlayMid);
+  document.documentElement.style.setProperty('--theme-overlay-bottom', theme.overlayBottom);
+}
+
+function go(id){
+  document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+  if(id === 's-chat'){
+    applyCharacterTheme();
+    syncChat();
+  }
+}
+
+function syncChat(){
+  var dialog = getCurrentDialog();
+  document.getElementById('chat-nm').textContent = sel.name;
+  document.getElementById('chat-sub-type').textContent = dialog.type || '대화 가능';
+  setStatusChip('AI 캐릭터');
+
+  var profile = document.getElementById('chat-profile');
+  if(sel.imgUrl){
+    profile.innerHTML = '<img src="' + sel.imgUrl + '" alt=""><div class="chat-profile-ring"></div>';
+  }else{
+    profile.innerHTML = '<div class="chat-profile-fallback">' + sel.emoji + '</div><div class="chat-profile-ring"></div>';
+  }
+
+  var bg = document.getElementById('chat-bg-img');
+  bg.src = sel.imgUrl || DEFAULT_CHAT_BG;
+  bg.onerror = function(){
+    this.src = DEFAULT_CHAT_BG;
+  };
+}
+
+function syncAffinity(){
+  document.getElementById('affinity-value').textContent = affinity + '%';
+  document.getElementById('affinity-fill').style.width = affinity + '%';
+}
+
+function increaseAffinity(amount){
+  affinity = Math.min(100, affinity + amount);
+  syncAffinity();
+}
+
+function pickTheme(el){
+  document.querySelectorAll('.choice-card').forEach(c=>c.classList.remove('sel'));
+  el.classList.add('sel');
+  setTimeout(()=>go('s-chars'),300);
+}
+
+function setFtab(el){
+  document.querySelectorAll('.ftab').forEach(t=>t.classList.remove('on'));
+  el.classList.add('on');
+}
+
+function pickChar(el, name, emoji, imgUrl){
+  document.querySelectorAll('.char-card').forEach(c=>c.classList.remove('sel'));
+  el.classList.add('sel');
+
+  sel = {name:name, emoji:emoji, imgUrl:imgUrl || null};
+  applyCharacterTheme();
+  document.getElementById('chars-footer').style.display = 'block';
+
+  var avWrap = document.getElementById('sel-av-wrap');
+  if(sel.imgUrl){
+    avWrap.innerHTML = '<img src="' + sel.imgUrl + '" alt="">';
+  } else {
+    avWrap.innerHTML = '<span id="sel-av-emoji">' + emoji + '</span>';
+  }
+  document.getElementById('sel-nm').textContent = name + ' 선택됨';
+}
+
+function clearChar(){
+  document.querySelectorAll('.char-card').forEach(c=>c.classList.remove('sel'));
+  document.getElementById('chars-footer').style.display = 'none';
+}
+
+function toggleBookmark(e, btn){
+  e.stopPropagation();
+  btn.classList.toggle('on');
+  btn.textContent = btn.classList.contains('on') ? '★' : '☆';
+}
+
+function toggleLike(e, btn){
+  e.stopPropagation();
+  btn.classList.toggle('on');
+  btn.textContent = '♥';
+  if(btn.classList.contains('on')){
+    increaseAffinity(2);
+  }
+}
+
+function switchTab(el, panelId){
+  document.querySelectorAll('.ctab').forEach(t=>t.classList.remove('on'));
+  document.querySelectorAll('.ctab-panel').forEach(p=>p.classList.remove('on'));
+  el.classList.add('on');
+  document.getElementById(panelId).classList.add('on');
+}
+
+function setTarget(el){
+  document.querySelectorAll('.target-btn').forEach(b=>b.classList.remove('on'));
+  el.classList.add('on');
+}
+
+function generateImage(){
+  generatedImgUrl = MAIN_IMAGE_SRC;
+  var img = document.getElementById('gen-img');
+  var result = document.getElementById('gen-result');
+  var preview = document.getElementById('selected-preview');
+
+  selectedImgUrl = null;
+  preview.classList.remove('on');
+
+  img.src = generatedImgUrl;
+  img.onerror = function(){
+    this.src = '';
+    this.style.background = '#1b1b1b';
+  };
+
+  result.style.display = 'block';
+  result.style.animation = 'none';
+  void result.offsetWidth;
+  result.style.animation = 'popIn .45s cubic-bezier(.34,1.56,.64,1) forwards';
+}
+
+function useImage(){
+  if(!generatedImgUrl) return;
+  selectedImgUrl = generatedImgUrl;
+  document.getElementById('preview-thumb').src = selectedImgUrl;
+  document.getElementById('selected-preview').classList.add('on');
+}
+
+function removeImage(){
+  selectedImgUrl = null;
+  generatedImgUrl = null;
+  document.getElementById('selected-preview').classList.remove('on');
+  document.getElementById('gen-result').style.display = 'none';
+}
+
+function completeCreate(){
+  var nameValue = document.getElementById('char-name-input').value.trim();
+  sel = {
+    name: nameValue || '진위성',
+    emoji: '✨',
+    imgUrl: selectedImgUrl || generatedImgUrl
+  };
+  applyCharacterTheme();
+  startSelectedChat();
+}
+
+function startSelectedChat(){
+  go('s-chat');
+  renderInitialChat();
+}
+
+function getAvatarHTML(){
+  if(sel.imgUrl){
+    return '<img src="' + sel.imgUrl + '" alt="">';
+  }
+  return sel.emoji;
+}
+
+function appendScenario(){
+  var msgs = document.getElementById('msgs');
+  var chip = document.createElement('div');
+  chip.className = 'scenario-chip';
+  chip.innerHTML = getCurrentDialog().scenario;
+  msgs.appendChild(chip);
+}
+
+function appendCharacterMsg(text, timeText){
+  var msgs = document.getElementById('msgs');
+  var row = document.createElement('div');
+  row.className = 'msg-row';
+  row.innerHTML =
+    '<div class="m-av">' + getAvatarHTML() + '</div>' +
+    '<div><div class="bubble">' + escapeHtml(text) + '</div><div class="msg-time">' + timeText + '</div></div>';
+  msgs.appendChild(row);
+  msgs.scrollTop = msgs.scrollHeight;
+}
+
+function appendUserMsg(text, timeText){
+  var msgs = document.getElementById('msgs');
+  var row = document.createElement('div');
+  row.className = 'msg-row me';
+  row.innerHTML =
+    '<div><div class="bubble">' + escapeHtml(text) + '</div><div class="msg-time">' + timeText + '</div></div>';
+  msgs.appendChild(row);
+  msgs.scrollTop = msgs.scrollHeight;
+}
+
+function appendTypingBubble(){
+  removeTypingBubble();
+  var msgs = document.getElementById('msgs');
+  var row = document.createElement('div');
+  row.className = 'msg-row';
+  row.id = 'typing-row';
+  row.innerHTML =
+    '<div class="m-av">' + getAvatarHTML() + '</div>' +
+    '<div>' +
+      '<div class="bubble">' +
+        '<div class="typing-wrap">' +
+          '<span class="typing-dot"></span>' +
+          '<span class="typing-dot"></span>' +
+          '<span class="typing-dot"></span>' +
+          '<span class="typing-label">입력 중…</span>' +
+        '</div>' +
+      '</div>' +
+    '</div>';
+  msgs.appendChild(row);
+  msgs.scrollTop = msgs.scrollHeight;
+}
+
+function removeTypingBubble(){
+  var old = document.getElementById('typing-row');
+  if(old) old.remove();
+}
+
+function renderInitialChat(){
+  var msgs = document.getElementById('msgs');
+  var dialog = getCurrentDialog();
+  msgs.innerHTML = '';
+  replyCursor = 1;
+  chatStarted = true;
+  affinity = 28;
+  syncAffinity();
+  appendScenario();
+  appendCharacterMsg(dialog.replies[0], '오후 9:14');
+  setStatusChip('AI 캐릭터');
+}
+
+function getReplyDelay(text){
+  var len = text.length;
+  var readTime = Math.min(700, Math.max(260, len * 14));
+  var typeTime = Math.min(2200, Math.max(650, len * 34));
+  return {
+    read: readTime,
+    type: typeTime,
+    total: readTime + typeTime
+  };
+}
+
+function clearReplyTimers(){
+  clearTimeout(readingTimer);
+  clearTimeout(typingTimer);
+}
+
+function sendMsg(){
+  var ci = document.getElementById('ci');
+  var text = ci.value.trim();
+  var dialog = getCurrentDialog();
+  if(!text) return;
+
+  if(!chatStarted){
+    renderInitialChat();
+  }
+
+  appendUserMsg(text, '방금');
+  ci.value = '';
+  increaseAffinity(4);
+
+  var nextText = replyCursor < dialog.replies.length ? dialog.replies[replyCursor] : dialog.final;
+  var delay = getReplyDelay(nextText);
+
+  clearReplyTimers();
+  removeTypingBubble();
+
+  setStatusChip('읽는 중…');
+
+  readingTimer = setTimeout(function(){
+    setStatusChip('입력 중…');
+    appendTypingBubble();
+  }, delay.read);
+
+  typingTimer = setTimeout(function(){
+    removeTypingBubble();
+    appendCharacterMsg(nextText, '방금');
+    if(replyCursor < dialog.replies.length){
+      replyCursor++;
+    }
+    increaseAffinity(3);
+    setStatusChip('AI 캐릭터');
+  }, delay.total);
+}
+
+function escapeHtml(str){
+  return str
+    .replaceAll('&', '&amp;')
+    .replaceAll('<', '&lt;')
+    .replaceAll('>', '&gt;')
+    .replaceAll('"', '&quot;')
+    .replaceAll("'", '&#39;');
+}
+</script>
+</body>
+</html>
